@@ -2,7 +2,8 @@ repeat task.wait() until game:IsLoaded()
 if shared.vape then shared.vape:Uninject() end
 
 local vape
-local bedwarsMatch = table.find({6872274481, 8560631822, 8444591321}, game.PlaceId) ~= nil
+local bedwarsExperience = game.GameId == 2619619496
+	or table.find({6872265039, 6872274481, 8560631822, 8444591321}, game.PlaceId) ~= nil
 local loadstring = function(...)
 	local res, err = loadstring(...)
 	if err and vape then
@@ -41,12 +42,14 @@ end
 local function finishLoading()
 	vape.Init = nil
 	vape:Load()
-	local autoBank = bedwarsMatch and vape.Modules.AutoBank
+	local autoBank = bedwarsExperience and vape.Modules.AutoBank
 	if autoBank then
 		autoBank:SetVisible(true, true)
 		autoBank.Object.Visible = true
 		local category = vape.Categories.Inventory
+		category.Button.Object.Visible = true
 		if not category.Button.Enabled then category.Button:Toggle() end
+		category.Object.Visible = true
 		if not category.Expanded then category:Expand() end
 	end
 	task.spawn(function()
@@ -101,10 +104,25 @@ end
 vape = loadstring(downloadFile('creeblyvape/guis/'..gui..'.lua'), 'gui')()
 shared.vape = vape
 
-if not shared.VapeIndependent then
-	loadstring(downloadFile('creeblyvape/games/universal.lua'), 'universal')()
-	if bedwarsMatch then
+-- Register before universal dependencies or legacy game setup can fail.
+if bedwarsExperience then
+	local success, err = pcall(function()
 		loadstring(downloadFile('creeblyvape/libraries/autobank.lua'), 'autobank')(vape)
+	end)
+	if not success then
+		warn('[Vape] AutoBank registration failed: '..tostring(err))
+		vape:CreateNotification('AutoBank', 'Could not create the module: '..tostring(err), 30, 'alert')
+	end
+end
+
+if not shared.VapeIndependent then
+	local universalSuccess, universalError = pcall(function()
+		loadstring(downloadFile('creeblyvape/games/universal.lua'), 'universal')()
+	end)
+	if not universalSuccess then
+		if not bedwarsExperience then error(universalError) end
+		warn('[Vape] Universal compatibility: '..tostring(universalError))
+		vape:CreateNotification('Vape', 'Some general modules failed to load. AutoBank is independent.', 10, 'alert')
 	end
 	local arguments = table.pack(...)
 	local function loadGame()
@@ -117,7 +135,7 @@ if not shared.VapeIndependent then
 			end
 		end
 	end
-	if bedwarsMatch then
+	if bedwarsExperience then
 		task.spawn(function()
 			local success, err = pcall(loadGame)
 			if not success then warn('[Vape] BedWars compatibility: '..tostring(err)) end

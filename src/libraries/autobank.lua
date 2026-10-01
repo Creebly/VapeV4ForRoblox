@@ -55,6 +55,11 @@ AutoBank = inventoryCategory:CreateModule({
 	Name = 'AutoBank',
 	Function = function(enabled)
 		if not enabled then return end
+		if game.PlaceId == 6872265039 then
+			notify('Join a BedWars match to use your personal chest.', 8)
+			if AutoBank.Enabled then AutoBank:Toggle() end
+			return
+		end
 		local success, failure = pcall(function()
 			local ts = replicatedStorage:WaitForChild('TS', 10)
 			assert(ts, 'ReplicatedStorage.TS was not found')
@@ -119,6 +124,7 @@ inventoryCategory.Button.Object.Visible = true
 if not inventoryCategory.Button.Enabled then
 	inventoryCategory.Button:Toggle()
 end
+inventoryCategory.Object.Visible = true
 if not inventoryCategory.Expanded then
 	inventoryCategory:Expand()
 end

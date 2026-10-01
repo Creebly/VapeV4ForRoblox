@@ -20,9 +20,11 @@ local function invalidate(path)
 	end
 end
 
+local buildVersion
 if not shared.VapeDeveloper then
-	local version = game:HttpGet(baseURL..'version.txt'):match('^%x+')
+	local version = game:HttpGet(baseURL..'version.txt?autobank=2', false):match('^%x+')
 	assert(version, 'Could not read the fork build version')
+	buildVersion = version
 	local versionPath = 'creeblyvape/profiles/fork-version.txt'
 	if not isfile(versionPath) or readfile(versionPath) ~= version then
 		for _, folder in {'creeblyvape/games', 'creeblyvape/guis', 'creeblyvape/libraries', 'creeblyvape/assets'} do
@@ -40,10 +42,16 @@ if not shared.VapeDeveloper then
 end
 
 local mainPath = 'creeblyvape/main.lua'
-if not isfile(mainPath) then
-	local source = game:HttpGet(baseURL..'main.lua')
+if not shared.VapeDeveloper or not isfile(mainPath) then
+	local source = game:HttpGet(baseURL..'main.lua'..(buildVersion and '?v='..buildVersion or ''), false)
 	assert(source ~= '404: Not Found', 'The fork runtime is missing main.lua')
 	writefile(mainPath, watermark..'\n'..source)
+	-- Refresh this small independent module even if a previous cache was edited.
+	if not shared.VapeDeveloper then
+		local autoBankSource = game:HttpGet(baseURL..'libraries/autobank.lua?v='..buildVersion, false)
+		assert(autoBankSource ~= '404: Not Found', 'The fork runtime is missing AutoBank')
+		writefile('creeblyvape/libraries/autobank.lua', watermark..'\n'..autoBankSource)
+	end
 end
 local main, err = loadstring(readfile(mainPath), 'main')
 assert(main, err)

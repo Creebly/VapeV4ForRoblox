@@ -45,7 +45,7 @@ const version = crypto.createHash('sha256');
 for (const file of [...filesUnder(src), ...filesUnder(path.join(root, 'scripts'))].sort()) {
   version.update(path.relative(root, file).replaceAll('\\', '/'));
   const data = fs.readFileSync(file);
-  version.update(file.endsWith('.lua') || file.endsWith('.js') || file.endsWith('.cjs') ? data.toString('utf8').replace(/\r\n/g, '\n') : data);
+  version.update(/\.(lua|luau|js|cjs)$/.test(file) ? data.toString('utf8').replace(/\r\n/g, '\n') : data);
 }
 fs.writeFileSync(path.join(dest, 'version.txt'), version.digest('hex') + '\n');
 console.log('Built source and runtime for Creebly/VapeV4ForRoblox.');
