@@ -1,6 +1,6 @@
 local baseURL = 'https://raw.githubusercontent.com/Creebly/VapeV4ForRoblox/refs/heads/main/runtime/'
 -- The build embeds its version: startup does not need to download version.txt.
-local buildVersion = '19f676ded49dcd2b343e10c411e59c68f9b09855ac5f328b97842de690c82006'
+local buildVersion = '91e41b279a7f77888d053e67267a37a4985e8ecaeb91df6bbfa0cc34d30f0b9e'
 local watermark = '--This watermark is used to delete the file if its cached, remove it to make the file persist after vape updates.'
 local isfile = isfile or function(file)
 	local success, value = pcall(readfile, file)
