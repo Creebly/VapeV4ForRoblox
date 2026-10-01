@@ -40,12 +40,17 @@ for (const file of filesUnder(dest).filter(file => file.endsWith('.lua'))) {
     .replaceAll("..'/loader.lua'", "..'/runtime/loader.lua'");
   fs.writeFileSync(file, code);
 }
-fs.copyFileSync(path.join(dest, 'loader.lua'), path.join(root, 'NewMainScript.lua'));
 const version = crypto.createHash('sha256');
 for (const file of [...filesUnder(src), ...filesUnder(path.join(root, 'scripts'))].sort()) {
   version.update(path.relative(root, file).replaceAll('\\', '/'));
   const data = fs.readFileSync(file);
   version.update(/\.(lua|luau|js|cjs)$/.test(file) ? data.toString('utf8').replace(/\r\n/g, '\n') : data);
 }
-fs.writeFileSync(path.join(dest, 'version.txt'), version.digest('hex') + '\n');
+const buildVersion = version.digest('hex');
+fs.writeFileSync(path.join(dest, 'version.txt'), buildVersion + '\n');
+const loaderPath = path.join(dest, 'loader.lua');
+fs.writeFileSync(loaderPath, fs.readFileSync(loaderPath, 'utf8').replaceAll('__FORK_BUILD_VERSION__', buildVersion));
+for (const filename of ['NewMainScript.lua', 'AutoBankLoader.lua']) {
+  fs.copyFileSync(loaderPath, path.join(root, filename));
+}
 console.log('Built source and runtime for Creebly/VapeV4ForRoblox.');

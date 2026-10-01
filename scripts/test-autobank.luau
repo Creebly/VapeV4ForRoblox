@@ -88,8 +88,10 @@ for _, case in cases do
 	assert(loaded == (case.independent and 0 or 1), 'Main initialization failed')
 end
 
+local embeddedVersion = loaderSource:match("local buildVersion = '(%x+)'")
+assert(embeddedVersion and #embeddedVersion == 64, 'Build must embed the loader version')
 local files = {
-	['creeblyvape/profiles/fork-version.txt'] = string.rep('a', 64),
+	['creeblyvape/profiles/fork-version.txt'] = embeddedVersion,
 	['creeblyvape/main.lua'] = 'stale edited copy',
 	['creeblyvape/libraries/autobank.lua'] = 'stale edited bank'
 }
@@ -100,9 +102,10 @@ local result = compile(loaderSource, {
 	readfile = function(path) return files[path] end,
 	writefile = function(path, contents) files[path] = contents end,
 	game = {HttpGet = function(_, url, useCache)
-		assert(useCache == false, 'Fresh requests must bypass HTTP cache')
+		assert(useCache == true, 'Use the compatible HttpGet format')
+		assert(not url:find('?', 1, true), 'Downloads must not use query parameters')
+		assert(not url:find('version.txt', 1, true), 'Startup must not download the version file')
 		freshRequests += 1
-		if url:find('version.txt', 1, true) then return string.rep('a', 64) end
 		if url:find('libraries/autobank.lua', 1, true) then return '-- fresh AutoBank' end
 		if url:find('main.lua', 1, true) then return "return 'fresh main'" end
 		error('Unexpected URL: '..url)
@@ -110,5 +113,5 @@ local result = compile(loaderSource, {
 })()
 assert(result == 'fresh main', 'Loader must replace stale main even with unchanged version')
 assert(files['creeblyvape/libraries/autobank.lua']:find('fresh AutoBank', 1, true), 'Loader must refresh AutoBank')
-assert(freshRequests == 3, 'Expected version, main, and AutoBank downloads')
+assert(freshRequests == 2, 'Expected only main and AutoBank downloads')
 return 'PASS: seven startup cases, failed universal dependency, hidden profiles, lobby guard, duplicate registration, and stale cache refresh'

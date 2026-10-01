@@ -1,4 +1,6 @@
-local baseURL = 'https://raw.githubusercontent.com/Creebly/VapeV4ForRoblox/main/runtime/'
+local baseURL = 'https://raw.githubusercontent.com/Creebly/VapeV4ForRoblox/refs/heads/main/runtime/'
+-- The build embeds its version: startup does not need to download version.txt.
+local buildVersion = '19f676ded49dcd2b343e10c411e59c68f9b09855ac5f328b97842de690c82006'
 local watermark = '--This watermark is used to delete the file if its cached, remove it to make the file persist after vape updates.'
 local isfile = isfile or function(file)
 	local success, value = pcall(readfile, file)
@@ -20,13 +22,9 @@ local function invalidate(path)
 	end
 end
 
-local buildVersion
 if not shared.VapeDeveloper then
-	local version = game:HttpGet(baseURL..'version.txt?autobank=2', false):match('^%x+')
-	assert(version, 'Could not read the fork build version')
-	buildVersion = version
 	local versionPath = 'creeblyvape/profiles/fork-version.txt'
-	if not isfile(versionPath) or readfile(versionPath) ~= version then
+	if not isfile(versionPath) or readfile(versionPath) ~= buildVersion then
 		for _, folder in {'creeblyvape/games', 'creeblyvape/guis', 'creeblyvape/libraries', 'creeblyvape/assets'} do
 			invalidate(folder)
 		end
@@ -35,21 +33,28 @@ if not shared.VapeDeveloper then
 				if delfile then delfile(file) else writefile(file, '') end
 			end
 		end
-		writefile(versionPath, version)
+		writefile(versionPath, buildVersion)
 	end
 	writefile('creeblyvape/profiles/commit.txt', 'main')
 	writefile('creeblyvape/profiles/asset.txt', '1')
 end
 
+local function download(relativePath)
+	local success, source = pcall(function()
+		return game:HttpGet(baseURL..relativePath, true)
+	end)
+	assert(success, 'Could not download '..relativePath..': '..tostring(source))
+	assert(type(source) == 'string' and source ~= '' and source ~= '404: Not Found', 'The fork runtime is missing '..relativePath)
+	return source
+end
+
 local mainPath = 'creeblyvape/main.lua'
 if not shared.VapeDeveloper or not isfile(mainPath) then
-	local source = game:HttpGet(baseURL..'main.lua'..(buildVersion and '?v='..buildVersion or ''), false)
-	assert(source ~= '404: Not Found', 'The fork runtime is missing main.lua')
+	local source = download('main.lua')
 	writefile(mainPath, watermark..'\n'..source)
 	-- Refresh this small independent module even if a previous cache was edited.
 	if not shared.VapeDeveloper then
-		local autoBankSource = game:HttpGet(baseURL..'libraries/autobank.lua?v='..buildVersion, false)
-		assert(autoBankSource ~= '404: Not Found', 'The fork runtime is missing AutoBank')
+		local autoBankSource = download('libraries/autobank.lua')
 		writefile('creeblyvape/libraries/autobank.lua', watermark..'\n'..autoBankSource)
 	end
 end
